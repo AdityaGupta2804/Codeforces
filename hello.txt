@@ -1,0 +1,168 @@
+ssh localhost 
+ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa 
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys 
+chmod 0600 ~/.ssh/authorized_keys 
+hadoop-3.2.3/bin/hdfs namenode -format
+export PDSH_RCMD_TYPE=ssh
+start-all.sh
+localhost:9870
+
+jps 
+mapred CLASSPATH
+export CLASSPATH
+gedit MovieMap.java
+javac MovieMap.java
+jar -cvf WT.jar -C WT /.
+gedit Input_wt.txt
+hadoop fs -put Input_wt.txt /INPUT_WT
+hadoop jar WT.jar MovieTags /INPUT_WT /OUTPUT_WT/.
+hadoop fs -ls /OUTPUT_WT
+hadoop fs -cat /OUTPUT_WT/part-r-00000
+
+////////////////////////////////////////////////////////////
+import java.io.IOException;
+import java.util.*;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.*;
+import org.apache.hadoop.mapreduce.lib.output.*;
+
+public class MatrixMultiplication {
+
+ public static class Map extends Mapper<LongWritable, Text, Text, Text> {
+  public void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
+   String[] parts = value.toString().split(",");
+   String tag = parts[0], i = parts[1], j = parts[2], val = parts[3];
+   if (tag.equals("A")) ctx.write(new Text(j), new Text("A," + i + "," + val));
+   else ctx.write(new Text(i), new Text("B," + j + "," + val));
+  }
+ }
+
+ public static class Reduce extends Reducer<Text, Text, Text, Text> {
+  public void reduce(Text key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+   List<String[]> A = new ArrayList<>(), B = new ArrayList<>();
+   for (Text v : values) {
+    String[] parts = v.toString().split(",");
+    if (parts[0].equals("A")) A.add(parts);
+    else B.add(parts);
+   }
+   for (String[] a : A)
+    for (String[] b : B) {
+     String i = a[1], k = b[1];
+     float val = Float.parseFloat(a[2]) * Float.parseFloat(b[2]);
+     ctx.write(null, new Text(i + "," + k + "," + val));
+    }
+  }
+ }
+
+ public static void main(String[] args) throws Exception {
+  Configuration conf = new Configuration();
+  Job job = Job.getInstance(conf, "MatrixMultiplication");
+  job.setJarByClass(MatrixMultiplication.class);
+  job.setMapperClass(Map.class);
+  job.setReducerClass(Reduce.class);
+  job.setOutputKeyClass(Text.class);
+  job.setOutputValueClass(Text.class);
+  job.setInputFormatClass(TextInputFormat.class);
+  job.setOutputFormatClass(TextOutputFormat.class);
+  FileInputFormat.addInputPath(job, new Path(args[0]));
+  FileOutputFormat.setOutputPath(job, new Path(args[1]));
+  System.exit(job.waitForCompletion(true) ? 0 : 1);
+ }
+}
+
+///////////////////////////////////////////////////////////////////
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import java.io.IOException;
+
+public class WeatherMapReduce {
+
+  public static class WeatherMapper extends Mapper<Object, Text, Text, Text> {
+    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+      String[] fields = value.toString().split(",");
+      if (fields.length < 2) return;
+      String city = fields[0];
+      String condition = classifyTemperature(fields[1]);
+      context.write(new Text(city), new Text(condition));
+    }
+
+    private String classifyTemperature(String tempStr) {
+      double temp = Double.parseDouble(tempStr);
+      if (temp < 0) return "Freezing";
+      if (temp <= 15) return "Cold";
+      if (temp <= 25) return "Warm";
+      return "Hot";
+    }
+  }
+
+  public static class WeatherReducer extends Reducer<Text, Text, Text, Text> {
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+      StringBuilder result = new StringBuilder();
+      for (Text val : values) result.append(val).append(" ");
+      context.write(key, new Text(result.toString().trim()));
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration conf = new Configuration();
+    Job job = Job.getInstance(conf, "WeatherMapReduce");
+    job.setJarByClass(WeatherMapReduce.class);
+    job.setMapperClass(WeatherMapper.class);
+    job.setCombinerClass(WeatherReducer.class);
+    job.setReducerClass(WeatherReducer.class);
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(Text.class);
+    FileInputFormat.addInputPath(job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+    System.exit(job.waitForCompletion(true) ? 0 : 1);
+  }
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import java.io.IOException;
+import java.util.*;
+
+public class MovieTags {
+
+  public static class TagMapper extends Mapper<Object, Text, Text, Text> {
+    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+      String[] tokens = value.toString().split(",");
+      if (tokens.length == 4)
+        context.write(new Text(tokens[1]), new Text(tokens[2])); // movieId, tag
+    }
+  }
+
+  public static class TagReducer extends Reducer<Text, Text, Text, Text> {
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+      Set<String> tags = new HashSet<>();
+      for (Text val : values) tags.add(val.toString());
+      context.write(key, new Text(String.join(", ", tags)));
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration conf = new Configuration();
+    Job job = Job.getInstance(conf, "MovieTags");
+    job.setJarByClass(MovieTags.class);
+    job.setMapperClass(TagMapper.class);
+    job.setReducerClass(TagReducer.class);
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(Text.class);
+    FileInputFormat.addInputPath(job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+    System.exit(job.waitForCompletion(true) ? 0 : 1);
+  }
+}
