@@ -1,168 +1,193 @@
-ssh localhost 
-ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa 
-cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys 
-chmod 0600 ~/.ssh/authorized_keys 
-hadoop-3.2.3/bin/hdfs namenode -format
-export PDSH_RCMD_TYPE=ssh
-start-all.sh
-localhost:9870
+1
+# your remaining code
 
-jps 
-mapred CLASSPATH
-export CLASSPATH
-gedit MovieMap.java
-javac MovieMap.java
-jar -cvf WT.jar -C WT /.
-gedit Input_wt.txt
-hadoop fs -put Input_wt.txt /INPUT_WT
-hadoop jar WT.jar MovieTags /INPUT_WT /OUTPUT_WT/.
-hadoop fs -ls /OUTPUT_WT
-hadoop fs -cat /OUTPUT_WT/part-r-00000
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+df=pd.read_csv("California_Housing.csv")
+df.head()
+df.shape
+df.info()
+df.describe()
+list(df.columns)
+df.isnull().values.any()
+df.duplicated().sum()
+df.isnull().sum()
+df['median_income'].hist()
+df.hist(bins=30, figsize=(12, 10), edgecolor='black')
+sns.boxplot(y=df['population'])
+plt.show()
+sns.boxplot(y=df['housing_median_age'])
+plt.show()
+sns.distplot(df['housing_median_age'])
+df.hist(stacked=False, bins=100, figsize=(12,40), layout=(14,2));
+#===================================================================
+2
+#
 
-////////////////////////////////////////////////////////////
-import java.io.IOException;
-import java.util.*;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.*;
-import org.apache.hadoop.mapreduce.lib.input.*;
-import org.apache.hadoop.mapreduce.lib.output.*;
 
-public class MatrixMultiplication {
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+df=pd.read_csv("California_Housing.csv")
+df.head()
+df.shape
+df.info()
+df.describe()
+list(df.columns)
+df.isnull().values.any()
+import seaborn as sns
+import matplotlib.pyplot as plt
 
- public static class Map extends Mapper<LongWritable, Text, Text, Text> {
-  public void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
-   String[] parts = value.toString().split(",");
-   String tag = parts[0], i = parts[1], j = parts[2], val = parts[3];
-   if (tag.equals("A")) ctx.write(new Text(j), new Text("A," + i + "," + val));
-   else ctx.write(new Text(i), new Text("B," + j + "," + val));
-  }
- }
+plt.figure(figsize=(10, 8))
 
- public static class Reduce extends Reducer<Text, Text, Text, Text> {
-  public void reduce(Text key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-   List<String[]> A = new ArrayList<>(), B = new ArrayList<>();
-   for (Text v : values) {
-    String[] parts = v.toString().split(",");
-    if (parts[0].equals("A")) A.add(parts);
-    else B.add(parts);
-   }
-   for (String[] a : A)
-    for (String[] b : B) {
-     String i = a[1], k = b[1];
-     float val = Float.parseFloat(a[2]) * Float.parseFloat(b[2]);
-     ctx.write(null, new Text(i + "," + k + "," + val));
-    }
-  }
- }
+# Select only numeric columns for correlation
+numeric_df = df.select_dtypes(include=['number'])
 
- public static void main(String[] args) throws Exception {
-  Configuration conf = new Configuration();
-  Job job = Job.getInstance(conf, "MatrixMultiplication");
-  job.setJarByClass(MatrixMultiplication.class);
-  job.setMapperClass(Map.class);
-  job.setReducerClass(Reduce.class);
-  job.setOutputKeyClass(Text.class);
-  job.setOutputValueClass(Text.class);
-  job.setInputFormatClass(TextInputFormat.class);
-  job.setOutputFormatClass(TextOutputFormat.class);
-  FileInputFormat.addInputPath(job, new Path(args[0]));
-  FileOutputFormat.setOutputPath(job, new Path(args[1]));
-  System.exit(job.waitForCompletion(true) ? 0 : 1);
- }
-}
+# Plot the heatmap
+sns.heatmap(numeric_df.corr(), annot=True, fmt='.2f')
 
-///////////////////////////////////////////////////////////////////
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.*;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import java.io.IOException;
+# Keep only numeric columns
+numeric_df = df.select_dtypes(include=['number'])
 
-public class WeatherMapReduce {
+# Compute the correlation matrix
+corr_matrix = numeric_df.corr()
 
-  public static class WeatherMapper extends Mapper<Object, Text, Text, Text> {
-    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-      String[] fields = value.toString().split(",");
-      if (fields.length < 2) return;
-      String city = fields[0];
-      String condition = classifyTemperature(fields[1]);
-      context.write(new Text(city), new Text(condition));
-    }
+# Plot the heatmap with upper triangle masked
+plt.figure(figsize=(12, 6))
+sns.heatmap(corr_matrix, 
+            cmap='plasma', 
+            fmt='.2g', 
+            annot=True, 
+            mask=np.triu(np.ones_like(corr_matrix, dtype=bool), k=1))
+plt.show()
+sns.pairplot(df, hue='label')
+plt.show()
+#=========================================================================
+3
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn import datasets
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+# Load the Iris dataset
+iris = datasets.load_iris()
+X = iris.data # Features (4D)
+y = iris.target # Target classes
+# Standardize the dataset (important for PCA)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+# Apply PCA to reduce dimensions from 4 to 2
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+# Create a DataFrame for visualization
+plt.figure(figsize=(8, 6))
+sns.scatterplot(x=X_pca[:, 0], y=X_pca[:, 1], hue=y, palette="viridis", s=80)
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.title('PCA of Iris Dataset')
+plt.legend(labels=iris.target_names)
+plt.show()
+print("Explained Variance Ratio:", pca.explained_variance_ratio_)
+print(X_pca)
+#===============================================================================
+4
+import pandas as pd
+# Load the dataset
+file_path = "find_s.csv"
+df = pd.read_csv(file_path)
+df.head()
+df.describe()
+def find_s_algorithm(data, target_col):
+    # Extract feature columns (excluding Example and target column)
+    features = data.columns[1:-1]
+    hypothesis = None
 
-    private String classifyTemperature(String tempStr) {
-      double temp = Double.parseDouble(tempStr);
-      if (temp < 0) return "Freezing";
-      if (temp <= 15) return "Cold";
-      if (temp <= 25) return "Warm";
-      return "Hot";
-    }
-  }
+    for i, row in data.iterrows():
+        if row[target_col] == "Yes":  # Consider only positive examples
+            if hypothesis is None:
+                hypothesis = row[features].tolist()  # First positive example
+            else:
+                # Generalize hypothesis
+                for j in range(len(hypothesis)):
+                    if hypothesis[j] != row[features].iloc[j]:
+                        hypothesis[j] = "?"
+                        
+    return hypothesis
 
-  public static class WeatherReducer extends Reducer<Text, Text, Text, Text> {
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-      StringBuilder result = new StringBuilder();
-      for (Text val : values) result.append(val).append(" ");
-      context.write(key, new Text(result.toString().trim()));
-    }
-  }
+# Call the function
+final_hypothesis = find_s_algorithm(df, "EnjoySport")
+print("Most Specific Hypothesis:", final_hypothesis)
+#============================================================================================================================
+5
+import numpy as np
+import matplotlib.pyplot as plt
+from collections import Counter
 
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "WeatherMapReduce");
-    job.setJarByClass(WeatherMapReduce.class);
-    job.setMapperClass(WeatherMapper.class);
-    job.setCombinerClass(WeatherReducer.class);
-    job.setReducerClass(WeatherReducer.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(Text.class);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
-  }
-}
-/////////////////////////////////////////////////////////////////////////////////////////////////
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.*;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import java.io.IOException;
-import java.util.*;
+# Generate random data
+data = np.random.rand(100)
+labels = ["Class1" if x <= 0.5 else "Class2" for x in data[:50]]
 
-public class MovieTags {
+# Euclidean distance function for 1D
+def euclidean_distance(x1, x2):
+    return abs(x1 - x2)
 
-  public static class TagMapper extends Mapper<Object, Text, Text, Text> {
-    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-      String[] tokens = value.toString().split(",");
-      if (tokens.length == 4)
-        context.write(new Text(tokens[1]), new Text(tokens[2])); // movieId, tag
-    }
-  }
+# k-NN classifier function
+def knn_classifier(train_data, train_labels, test_point, k):
+    distances = [(euclidean_distance(test_point, train_data[i]), train_labels[i]) for i in range(len(train_data))]
+    distances.sort(key=lambda x: x[0])
+    k_nearest_neighbors = distances[:k]
+    k_nearest_labels = [label for _, label in k_nearest_neighbors]
+    return Counter(k_nearest_labels).most_common(1)[0][0]
 
-  public static class TagReducer extends Reducer<Text, Text, Text, Text> {
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-      Set<String> tags = new HashSet<>();
-      for (Text val : values) tags.add(val.toString());
-      context.write(key, new Text(String.join(", ", tags)));
-    }
-  }
+# Split into train/test
+train_data = data[:50]
+train_labels = labels
+test_data = data[50:]
 
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "MovieTags");
-    job.setJarByClass(MovieTags.class);
-    job.setMapperClass(TagMapper.class);
-    job.setReducerClass(TagReducer.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(Text.class);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
-  }
-}
+k_values = [1, 2]
+results = {}
+
+print("--- k-Nearest Neighbors Classification ---")
+print("Training dataset: First 50 points labeled based on the rule (x <= 0.5 -> Class1, x > 0.5 -> Class2)")
+print("Testing dataset: Remaining 50 points to be classified\n")
+
+# Classification
+for k in k_values:
+    print(f"Results for k = {k}:")
+    classified_labels = [knn_classifier(train_data, train_labels, test_point, k) for test_point in test_data]
+    results[k] = classified_labels
+
+    for i, label in enumerate(classified_labels, start=51):
+        print(f"Point x{i} (value: {test_data[i - 51]:.4f}) is classified as {label}")
+    print("\n")
+
+print("Classification complete.\n")
+
+# Visualization
+for k in k_values:
+    classified_labels = results[k]
+    class1_points = [test_data[i] for i in range(len(test_data)) if classified_labels[i] == "Class1"]
+    class2_points = [test_data[i] for i in range(len(test_data)) if classified_labels[i] == "Class2"]
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(train_data, [0] * len(train_data),
+                c=["blue" if label == "Class1" else "red" for label in train_labels],
+                label="Training Data", marker="o")
+    plt.scatter(class1_points, [1] * len(class1_points), c="blue", label="Class1 (Test)", marker="x")
+    plt.scatter(class2_points, [1] * len(class2_points), c="red", label="Class2 (Test)", marker="x")
+    plt.title(f"k-NN Classification Results for k = {k}")
+    plt.xlabel("Data Points")
+    plt.ylabel("Classification Level")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
