@@ -1,0 +1,376 @@
+EXPERIMENT 1
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+df = pd.read_csv("California_Housing.csv")
+
+df.info()
+df.describe()
+df.shape
+df.head()
+df.isnull().values.any()
+df.duplicated().sum()
+df.isnull().sum()
+list(df.columns)
+
+df['median_income'].hist()
+plt.show()
+
+df.hist(bins=30, figsize=(12, 10), edgecolor='black')
+plt.show()
+
+sns.boxplot(y=df['population'])
+plt.show()
+
+sns.boxplot(y=df['housing_median_age'])
+plt.show()
+
+sns.histplot(df['housing_median_age'], kde=True)
+plt.show()
+
+df.hist(stacked=False, bins=100, figsize=(12,40), layout=(14,2))
+plt.show()
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+EXPERIMENT 2
+
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load dataset
+df = pd.read_csv("California_Housing.csv")
+
+# Select numeric columns for correlation analysis
+numeric_df = df.select_dtypes(include=['number'])
+corr_matrix = numeric_df.corr()
+
+#Visualize the correlation matrix using a heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix of California Housing Features')
+plt.show()
+
+# Plot heatmap with upper triangle masked
+plt.figure(figsize=(12, 6))
+sns.heatmap(corr_matrix, cmap='coolwarm', fmt='.2g', annot=True, mask=np.triu(np.ones_like(corr_matrix, dtype=bool), k=1))
+plt.title('Correlation Matrix of California Housing Features upper triangle masked')
+plt.show()
+
+# Pair plot to visualize feature relationships
+sns.pairplot(df)
+plt.show()
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+EXPERIMENT 3
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn import datasets
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+iris = datasets.load_iris()
+X = iris.data  # Features (4D)
+y = iris.target  # Target classes
+X_scaled = StandardScaler().fit_transform(X)
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+plt.figure(figsize=(8, 6))
+sns.scatterplot(x=X_pca[:, 0], y=X_pca[:, 1], hue=y,palette="viridis", s=80)
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.title('PCA of Iris Dataset')
+plt.legend(labels=iris.target_names)
+plt.show()
+print(pca.explained_variance_ratio_)
+print(X_pca)
+print(pca)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+EXPERIMENT 4
+
+import pandas as pd
+data = pd.read_csv("find_s.csv")
+print(data)
+def find_s_algorithm(data, target_col):
+    features = data.columns[:-1]  # All columns except target
+    hypothesis = None
+
+    for _, row in data.iterrows():
+        if row[target_col] == "Yes":  # Use only positive examples
+            if hypothesis is None:
+                hypothesis = row[features].tolist()
+            else:
+                for i in range(len(hypothesis)):
+                    if hypothesis[i] != row[features].iloc[i]:
+                        hypothesis[i] = "?"
+    return hypothesis
+
+# Run the algorithm
+print("Most Specific Hypothesis:", find_s_algorithm(data, "EnjoySport"))
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+EXPERIMENT 5
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+
+# Generate data
+data = np.random.rand(100, 1)
+train_data, test_data = data[:50], data[50:]
+
+# Label training data (Class1 or Class2)
+train_labels = np.where(train_data <= 0.5, "Class1", "Class2")
+
+# Convert labels to 1D array
+train_labels = train_labels.ravel()
+
+k_values = [1, 2, 3, 4, 5, 20, 30]
+
+for k in k_values:
+    knn = KNeighborsClassifier(n_neighbors=k)
+    knn.fit(train_data, train_labels)
+    predictions = knn.predict(test_data)
+
+    print(f"Results for k = {k}:")
+    for i, (val, pred) in enumerate(zip(test_data, predictions), start=51):
+        print(f"Point x{i} (value: {val[0]:.4f}) is classified as {pred}")
+    print()
+
+    # Visualization
+    # Split test data by predicted class
+    class1_test = test_data[predictions == "Class1"]
+    class2_test = test_data[predictions == "Class2"]
+
+    plt.figure(figsize=(8, 3))
+    # Training points (o at y=0)
+    plt.scatter(train_data, [0]*len(train_data),
+                c=["blue" if label == "Class1" else "red" for label in train_labels],
+                label="Train Data", marker="o")
+
+    # Predicted test points (x at y=1)
+    plt.scatter(class1_test, [1]*len(class1_test), c="blue", marker="x", label="Class1 (Test)")
+    plt.scatter(class2_test, [1]*len(class2_test), c="red", marker="x", label="Class2 (Test)")
+
+    plt.title(f"k-NN Classification (k={k})")
+    plt.xlabel("Data Value")
+    plt.yticks([0, 1], ["Train", "Test"])
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+EXPERIMENT 6
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Step 1: Generate synthetic dataset
+np.random.seed(42)  # ensures reproducible results
+
+# 100 data points between -3 and 3 (inputs X), reshaped to column vector
+X = np.linspace(-3, 3, 100).reshape(-1, 1)
+
+# y = sin(x) + small noise → this makes the data a bit more realistic
+y = np.sin(X).ravel() + np.random.normal(scale=0.1, size=X.shape[0])
+
+# Step 2: Define Locally Weighted Regression function
+def locally_weighted_regression(x_query, X_train, y_train, tau):
+    # Calculate weights (W) for each training point using Gaussian kernel
+    W = np.exp(-((X_train - x_query) ** 2) / (2 * tau ** 2))  # shape: (100, 1)
+
+    # Add bias term (1) to X_train → shape: (100, 2)
+    X_bias = np.c_[np.ones_like(X_train), X_train]  # [1, x] for each row
+
+    # Weighted least squares solution:
+    # θ = (XᵗWX)^(-1) XᵗWy
+    W_diag = np.diag(W.ravel())  # convert weights into diagonal matrix
+    theta = np.linalg.pinv(X_bias.T @ W_diag @ X_bias) @ X_bias.T @ W_diag @ y_train
+
+    # Predict y for x_query: [1, x] · θ
+    return np.array([1, x_query]) @ theta
+
+# Step 3: Generate test points to predict using LWR
+X_test = np.linspace(-3, 3, 100)
+y_pred = np.array([locally_weighted_regression(x, X, y, tau=0.5) for x in X_test])
+
+# Step 4: Visualization
+plt.scatter(X, y, color="gray", alpha=0.5, label="Training Data")  # plot original data
+plt.plot(X_test, y_pred, color="red", linewidth=2, label="LWR Fit (τ=0.5)")  # LWR curve
+plt.legend()
+plt.xlabel("x")
+plt.ylabel("y")
+plt.title("Locally Weighted Regression (LWR)")
+# plt.grid(True)
+plt.show()
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+EXPERIMENT 7 - LINEAR REGRESSION
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
+
+# Load dataset from local CSV (make sure you have this file saved locally)
+df = pd.read_csv("boston - Data.csv")
+
+# Extract RM feature and target variable
+X = df[['RM']].values  # feature as 2D array
+y = df['MEDV'].values  # target
+
+# Train model
+model = LinearRegression().fit(X, y)
+
+# Predict on the same data (or split if needed)
+y_pred = model.predict(X)
+
+# Plot
+plt.scatter(X, y, color='blue', alpha=0.5, label='Actual')
+plt.plot(X, y_pred, color='red', label='Predicted')
+plt.xlabel("Average Rooms per Dwelling (RM)")
+plt.ylabel("House Price ($1000s)")
+plt.title("Linear Regression - Boston Housing (CSV)")
+plt.legend()
+plt.show()
+
+**************************************************************************
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+
+# Load dataset from local CSV file
+df = pd.read_csv('auto-mpg.csv').dropna()
+
+# Extract feature and target
+X = df[['horsepower']].values  # feature as 2D array
+y = df['mpg'].values  # target
+
+# Create Polynomial Regression model (degree 2)
+model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
+model.fit(X, y)
+
+# Generate data for smooth curve plot
+X_curve = np.linspace(X.min(), X.max(), 300).reshape(-1, 1)
+y_curve = model.predict(X_curve)
+
+# Plot actual points and polynomial regression curve
+plt.scatter(X, y, color='blue', s=10, label='Actual')
+plt.plot(X_curve, y_curve, color='red', linewidth=2, label='Degree 2 Fit')
+plt.xlabel('Horsepower')
+plt.ylabel('MPG (Fuel Efficiency)')
+plt.title('Polynomial Regression - Auto MPG (CSV)')
+plt.legend()
+plt.show()
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+EXPERIMENT 8
+
+from sklearn.datasets import load_breast_cancer
+from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+
+# Load dataset
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+# Split dataset
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Train Decision Tree
+clf = DecisionTreeClassifier(random_state=42)
+clf.fit(X_train, y_train)
+
+# Evaluate model
+y_pred = clf.predict(X_test)
+print("Accuracy:", accuracy_score(y_test, y_pred))
+
+# Print decision tree rules
+print("\nDecision Tree Rules:")
+print(export_text(clf, feature_names=data.feature_names.tolist()))
+
+# Plot tree
+plt.figure(figsize=(20, 10))
+plot_tree(clf, feature_names=data.feature_names, filled=True)
+plt.show()
+
+# Classify new sample
+sample = [X_test[0]]
+prediction = clf.predict(sample)
+print("Class of new sample:", data.target_names[prediction][0])
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+import numpy as np
+from sklearn.datasets import fetch_olivetti_faces
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+
+data = fetch_olivetti_faces(shuffle=True, random_state=42,data_home="olivetti_faces_labeled")
+X = data.data
+y = data.target
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+gnb=GaussianNB()
+gnb.fit(X_train, y_train)
+y_pred = gnb.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy * 100:.2f}%')
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred, zero_division=1))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+cross_val_accuracy = cross_val_score(gnb, X, y, cv=5, scoring='accuracy')
+print(f'\nCross-validation accuracy: {cross_val_accuracy.mean() * 100:.2f}%')
+
+# fig, axes = plt.subplots(3, 5, figsize=(12, 8))
+# for ax, image, label, prediction in zip(axes.ravel(), X_test, y_test, y_pred):
+#     ax.imshow(image.reshape(64, 64), cmap=plt.cm.gray)
+#     ax.set_title(f"True: {label}, Pred: {prediction}")
+#     ax.axis('off')
+# plt.show()
+for i in range(15):
+    plt.imshow(X_test[i].reshape(64, 64), cmap='gray')
+    plt.title(f"True: {y_test[i]}, Pred: {y_pred[i]}")
+    plt.axis('off')
+    plt.show()
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.datasets import load_breast_cancer
+
+# Load built-in Wisconsin Breast Cancer dataset
+data = load_breast_cancer()
+X = pd.DataFrame(data.data, columns=data.feature_names)
+
+# Apply K-Means clustering
+kmeans = KMeans(n_clusters=2, random_state=42)
+labels = kmeans.fit_predict(X)
+
+# Reduce dimensions to 2 for visualization
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+
+# Prepare data for plotting
+plot_df = pd.DataFrame(X_pca, columns=['PCA1', 'PCA2'])
+plot_df['Cluster'] = labels
+
+# Plot the clusters
+plt.figure(figsize=(8, 6))
+plt.scatter(plot_df['PCA1'], plot_df['PCA2'], c=plot_df['Cluster'], cmap='viridis')
+plt.title('K-Means Clustering (PCA View)')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.show()
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
